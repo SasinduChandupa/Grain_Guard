@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "195279116722",
+    "firebase_url": "https://grainguard-1cbcb-default-rtdb.firebaseio.com",
+    "project_id": "grainguard-1cbcb",
+    "storage_bucket": "grainguard-1cbcb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:195279116722:android:fb3be334ac342a1cc36cab",
+        "android_client_info": {
+          "package_name": "com.example.grainguard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzFmTYw05FGuQjBqg_2Pe003gIb_T0owA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
