@@ -144,13 +144,23 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
+                  'GRAINGUARD',
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                    fontStyle: FontStyle.italic, // This makes it cursive
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
                   'Login',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: const Color(0xFF4CAF50),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
                 if (_errorMessage.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
