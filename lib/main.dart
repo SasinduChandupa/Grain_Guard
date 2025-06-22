@@ -1,9 +1,12 @@
-// main.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'home.dart';
 import 'register.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const GrainGuardApp());
 }
 
@@ -33,20 +36,30 @@ class AuthWrapper extends StatefulWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _isLoggedIn = false;
+  String _userId = '';
 
-  void _login() => setState(() => _isLoggedIn = true);
-  void _logout() => setState(() => _isLoggedIn = false);
+  void _login(String userId) {
+    setState(() {
+      _isLoggedIn = true;
+      _userId = userId;
+    });
+  }
+
+  void _logout() => setState(() {
+    _isLoggedIn = false;
+    _userId = '';
+  });
 
   @override
   Widget build(BuildContext context) {
     return _isLoggedIn 
-        ? HomeScreen(onLogout: _logout)
+        ? HomeScreen(onLogout: _logout, userId: _userId)
         : LoginScreen(onLogin: _login);
   }
 }
 
 class LoginScreen extends StatefulWidget {
-  final VoidCallback onLogin;
+  final Function(String) onLogin;
   
   const LoginScreen({super.key, required this.onLogin});
 
@@ -60,6 +73,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  String _errorMessage = '';
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void dispose() {
@@ -71,11 +87,38 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1)); // Simulate network call
-    
-    if (mounted) {
-      widget.onLogin();
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      final querySnapshot = await _firestore
+          .collection('users')
+          .where('name', isEqualTo: _usernameController.text)
+          .where('password', isEqualTo: _passwordController.text)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        setState(() {
+          _errorMessage = 'Invalid username or password';
+        });
+        return;
+      }
+
+      // Get the user document ID and pass it to onLogin
+      final userId = querySnapshot.docs.first.id;
+      widget.onLogin(userId);
+
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Login failed. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -83,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => RegisterScreen(
-          onRegister: widget.onLogin, // Same login callback
+          onRegister: () => widget.onLogin(''), // Temporary empty user ID
         ),
       ),
     );
@@ -108,6 +151,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
+                if (_errorMessage.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      _errorMessage,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
                 Form(
                   key: _formKey,
                   child: Column(

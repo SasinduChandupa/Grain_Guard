@@ -1,5 +1,5 @@
-// register.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterScreen extends StatefulWidget {
   final VoidCallback onRegister;
@@ -19,6 +19,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -37,10 +39,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
     
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1)); // Simulate network call
     
-    if (mounted) {
-      widget.onRegister();
+    try {
+      // Save user data to Firestore
+      await _firestore.collection('users').add({
+        'name': _nameController.text,
+        'password': _passwordController.text, // Note: In production, you should hash passwords
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        widget.onRegister();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Registration failed: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'container.dart'; // Make sure you have this file
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'container.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onLogout;
+  final String userId; // Add userId parameter
   
   const HomeScreen({
     super.key,
     required this.onLogout,
+    required this.userId, // Receive userId
   });
 
   @override
@@ -16,26 +18,32 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  List<String> _containers = [];
   final TextEditingController _containerIdController = TextEditingController();
-  static const String _containersKey = 'saved_containers';
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadContainers();
+  Future<List<String>> _getUserContainers() async {
+    final doc = await _firestore.collection('users').doc(widget.userId).get();
+    if (doc.exists) {
+      final data = doc.data() as Map<String, dynamic>;
+      return List<String>.from(data['containers'] ?? []);
+    }
+    return [];
   }
 
-  Future<void> _loadContainers() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _containers = prefs.getStringList(_containersKey) ?? ['Container 01'];
+  Future<void> _saveContainer(String containerId) async {
+    final containers = await _getUserContainers();
+    containers.add(containerId);
+    
+    await _firestore.collection('users').doc(widget.userId).update({
+      'containers': FieldValue.arrayUnion([containerId]),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  Future<void> _saveContainers() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_containersKey, _containers);
+  Future<void> _deleteContainer(String containerId) async {
+    await _firestore.collection('users').doc(widget.userId).update({
+      'containers': FieldValue.arrayRemove([containerId]),
+    });
   }
 
   void _onItemTapped(int index) {
@@ -73,14 +81,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ElevatedButton(
               child: const Text('Add'),
-              onPressed: () {
+              onPressed: () async {
                 if (_containerIdController.text.isNotEmpty) {
-                  setState(() {
-                    _containers.add('Container ${_containerIdController.text}');
-                    _containerIdController.clear();
-                    _saveContainers();
-                  });
-                  Navigator.of(context).pop();
+                  await _saveContainer(_containerIdController.text);
+                  _containerIdController.clear();
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                    setState(() {}); // Refresh UI
+                  }
                 }
               },
             ),
@@ -88,13 +96,6 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
-  }
-
-  void _deleteContainer(int index) {
-    setState(() {
-      _containers.removeAt(index);
-      _saveContainers();
-    });
   }
 
   @override
@@ -125,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Home.',
+              'My Containers',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -135,72 +136,96 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 24),
             
             Expanded(
-              child: ListView.builder(
-                itemCount: _containers.length,
-                itemBuilder: (context, index) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: StreamBuilder<DocumentSnapshot>(
+                stream: _firestore.collection('users').doc(widget.userId).snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return const Center(child: Text('Error loading containers'));
+                  }
+
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final containers = List<String>.from(
+                    (snapshot.data?.data() as Map<String, dynamic>?)?['containers'] ?? []
+                  );
+
+                  if (containers.isEmpty) {
+                    return const Center(child: Text('No containers added yet'));
+                  }
+
+                  return ListView.builder(
+                    itemCount: containers.length,
+                    itemBuilder: (context, index) {
+                      final containerId = containers[index];
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            _containers[index],
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF4CAF50),
-                            ),
-                          ),
-                          if (_containers.length > 1)
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteContainer(index),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ContainerScreen(containerName: _containers[index]),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          height: 150,
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.2),
-                                spreadRadius: 2,
-                                blurRadius: 5,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Stack(
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Center(
-                                child: Image.asset(
-                                  'assets/images/jarcup.png',
-                                  width: 80,
-                                  height: 80,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Icon(Icons.image_not_supported, size: 50);
-                                  },
+                              Text(
+                                containerId,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF4CAF50),
                                 ),
                               ),
+                              IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () async {
+                                  await _deleteContainer(containerId);
+                                },
+                              ),
                             ],
                           ),
-                        ),
-                      ),
-                    ],
+                          const SizedBox(height: 12),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => 
+                                    ContainerScreen(containerName: containerId),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: 150,
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.2),
+                                    spreadRadius: 2,
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Stack(
+                                children: [
+                                  Center(
+                                    child: Image.asset(
+                                      'assets/images/jarcup.png',
+                                      width: 80,
+                                      height: 80,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return const Icon(Icons.image_not_supported, size: 50);
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   );
                 },
               ),
