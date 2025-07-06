@@ -19,8 +19,52 @@ class GrainGuardApp extends StatelessWidget {
       title: 'GrainGuard',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.green,
-        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+        // Define a primary color for consistent branding
+        primarySwatch: Colors.green, // This will generate various shades of green
+        primaryColor: const Color(0xFF4CAF50), // Explicitly define your desired green
+        scaffoldBackgroundColor: const Color(0xFFF5F5F5), // Light grey background
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF4CAF50), // Green app bar
+          foregroundColor: Colors.white, // White text/icons on app bar
+          elevation: 4.0,
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0), // More rounded corners
+            borderSide: BorderSide.none, // No border by default
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 2.0), // Green border when focused
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(color: Colors.grey.shade300, width: 1.0), // Light grey border when enabled
+          ),
+          labelStyle: const TextStyle(color: Color(0xFF555555)), // Darker grey label
+          hintStyle: const TextStyle(color: Color(0xFF555555)), // Darker grey hint
+          contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0), // More padding
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF4CAF50), // Green button background
+            foregroundColor: Colors.white, // White text on button
+            padding: const EdgeInsets.symmetric(vertical: 18), // Taller button
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12), // Rounded button corners
+            ),
+            elevation: 5, // Add shadow to the button
+            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), // Larger, bold text
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFF4CAF50), // Green text button
+            textStyle: const TextStyle(fontWeight: FontWeight.bold), // Bold text button
+          ),
+        ),
       ),
       home: const AuthWrapper(),
     );
@@ -46,13 +90,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   void _logout() => setState(() {
-    _isLoggedIn = false;
-    _userId = '';
-  });
+        _isLoggedIn = false;
+        _userId = '';
+      });
 
   @override
   Widget build(BuildContext context) {
-    return _isLoggedIn 
+    return _isLoggedIn
         ? HomeScreen(onLogout: _logout, userId: _userId)
         : LoginScreen(onLogin: _login);
   }
@@ -60,7 +104,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
 class LoginScreen extends StatefulWidget {
   final Function(String) onLogin;
-  
+
   const LoginScreen({super.key, required this.onLogin});
 
   @override
@@ -86,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() {
       _isLoading = true;
       _errorMessage = '';
@@ -110,7 +154,6 @@ class _LoginScreenState extends State<LoginScreen> {
       // Get the user document ID and pass it to onLogin
       final userId = querySnapshot.docs.first.id;
       widget.onLogin(userId);
-
     } catch (e) {
       setState(() {
         _errorMessage = 'Login failed. Please try again.';
@@ -146,19 +189,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 Text(
                   'GRAINGUARD',
                   style: TextStyle(
-                    fontSize: 30,
+                    fontSize: 32, // Slightly larger
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                    fontStyle: FontStyle.italic, // This makes it cursive
+                    color: Theme.of(context).primaryColor, // Use primary color
+                    fontStyle: FontStyle.normal, // Not cursive
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Login',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: const Color(0xFF4CAF50),
-                    fontWeight: FontWeight.bold,
-                  ),
+                        color: Theme.of(context).primaryColor, // Use primary color
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 const SizedBox(height: 24),
                 if (_errorMessage.isNotEmpty)
@@ -166,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Text(
                       _errorMessage,
-                      style: const TextStyle(color: Colors.red),
+                      style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold), // Darker red and bold
                     ),
                   ),
                 Form(
@@ -177,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _usernameController,
                         decoration: const InputDecoration(
                           labelText: 'Username',
-                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.person, color: Colors.grey), // Add icon
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -191,12 +234,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _passwordController,
                         decoration: InputDecoration(
                           labelText: 'Password',
-                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.lock, color: Colors.grey), // Add icon
                           suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword 
-                              ? Icons.visibility_off 
-                              : Icons.visibility),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            icon: Icon(_obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility, color: Colors.grey.shade600,), // Icon color
+                            onPressed: () =>
+                                setState(() => _obscurePassword = !_obscurePassword),
                           ),
                         ),
                         obscureText: _obscurePassword,
@@ -220,15 +264,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4CAF50),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                          ),
                           child: _isLoading
                               ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text('LOGIN', style: TextStyle(fontSize: 16)),
+                              : const Text('LOGIN'),
                         ),
                       ),
                     ],

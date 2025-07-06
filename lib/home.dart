@@ -5,7 +5,7 @@ import 'container.dart';
 class HomeScreen extends StatefulWidget {
   final VoidCallback onLogout;
   final String userId; // Add userId parameter
-  
+
   const HomeScreen({
     super.key,
     required this.onLogout,
@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _saveContainer(String containerId) async {
     final containers = await _getUserContainers();
     containers.add(containerId);
-    
+
     await _firestore.collection('users').doc(widget.userId).update({
       'containers': FieldValue.arrayUnion([containerId]),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -44,6 +44,42 @@ class _HomeScreenState extends State<HomeScreen> {
     await _firestore.collection('users').doc(widget.userId).update({
       'containers': FieldValue.arrayRemove([containerId]),
     });
+  }
+
+  // New method to show the confirmation dialog before deleting
+  Future<void> _confirmAndDeleteContainer(String containerId) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // User must tap a button to close
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Deletion'),
+          content: Text('Are you sure you want to delete this container "$containerId"?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Dismiss the dialog
+              },
+              child: const Text('No'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _deleteContainer(containerId);
+                if (mounted) {
+                  Navigator.of(context).pop(); // Dismiss the dialog
+                  setState(() {}); // Refresh the UI to reflect the deletion
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, // Red color for delete action
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Yes'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _onItemTapped(int index) {
@@ -108,14 +144,25 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('GrainGuard'),
+        title: const Text(
+          'GrainGuard',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: const Color(0xFF4CAF50), // Green app bar
+        elevation: 4.0, // Add a subtle shadow
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {},
+            icon: const Icon(Icons.notifications, color: Colors.white),
+            onPressed: () {
+              // Handle notification icon tap
+            },
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: widget.onLogout,
           ),
         ],
@@ -128,16 +175,16 @@ class _HomeScreenState extends State<HomeScreen> {
             const Text(
               'My Containers',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 26, // Slightly larger
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF333333),
+                color: Color(0xFF333333), // Darker grey
               ),
             ),
             const SizedBox(height: 24),
-            
             Expanded(
               child: StreamBuilder<DocumentSnapshot>(
-                stream: _firestore.collection('users').doc(widget.userId).snapshots(),
+                stream:
+                    _firestore.collection('users').doc(widget.userId).snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     return const Center(child: Text('Error loading containers'));
@@ -148,7 +195,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
 
                   final containers = List<String>.from(
-                    (snapshot.data?.data() as Map<String, dynamic>?)?['containers'] ?? []
+                    (snapshot.data?.data() as Map<String, dynamic>?)?['containers'] ??
+                        [],
                   );
 
                   if (containers.isEmpty) {
@@ -175,9 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () async {
-                                  await _deleteContainer(containerId);
-                                },
+                                onPressed: () => _confirmAndDeleteContainer(containerId), // Call new confirmation method
                               ),
                             ],
                           ),
@@ -187,23 +233,23 @@ class _HomeScreenState extends State<HomeScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => 
-                                    ContainerScreen(containerName: containerId),
+                                  builder: (context) =>
+                                      ContainerScreen(containerName: containerId),
                                 ),
                               );
                             },
                             child: Container(
-                              height: 150,
+                              height: 140, // Slightly smaller height
                               margin: const EdgeInsets.only(bottom: 16),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.grey.withOpacity(0.2),
-                                    spreadRadius: 2,
-                                    blurRadius: 5,
-                                    offset: const Offset(0, 3),
+                                    color: Colors.grey.withOpacity(0.3), // More prominent shadow
+                                    spreadRadius: 3,
+                                    blurRadius: 7,
+                                    offset: const Offset(0, 4),
                                   ),
                                 ],
                               ),
@@ -212,10 +258,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Center(
                                     child: Image.asset(
                                       'assets/images/jarcup.png',
-                                      width: 80,
-                                      height: 80,
+                                      width: 90, // Slightly larger image
+                                      height: 90,
+                                      fit: BoxFit.contain, // Ensure image scales correctly
+                                      colorBlendMode: BlendMode.srcATop, // Apply blend mode
+                                      color: const Color(0xFF4CAF50).withOpacity(0.7), // Green tint
                                       errorBuilder: (context, error, stackTrace) {
-                                        return const Icon(Icons.image_not_supported, size: 50);
+                                        return const Icon(Icons.image_not_supported, size: 60, color: Colors.grey); // Larger error icon
                                       },
                                     ),
                                   ),
@@ -230,25 +279,38 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
             ),
-            
             Center(
-              child: ElevatedButton.icon(
-                onPressed: _showAddContainerDialog,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50).withOpacity(0.1),
-                  foregroundColor: const Color(0xFF4CAF50),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: double.infinity, // Make the button full width
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30), // More rounded, pill shape
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF4CAF50).withOpacity(0.9),
+                      const Color(0xFF8BC34A).withOpacity(0.9)
+                    ], // Subtle green gradient
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
-                icon: const Icon(Icons.add, size: 24),
-                label: const Text(
-                  'Add more containers',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                child: ElevatedButton.icon(
+                  onPressed: _showAddContainerDialog,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent, // Transparent to show gradient
+                    foregroundColor: Colors.white,
+                    elevation: 0, // No shadow for the button itself
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16), // Increased padding
+                  ),
+                  icon: const Icon(Icons.add_circle_outline, size: 28), // Larger icon
+                  label: const Text(
+                    'Add More Containers',
+                    style: TextStyle(
+                      fontSize: 18, // Larger text
+                      fontWeight: FontWeight.w600, // Slightly bolder
+                    ),
                   ),
                 ),
               ),
@@ -259,15 +321,15 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: Icon(Icons.home, size: 28), // Slightly larger icon
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.add),
+            icon: Icon(Icons.add_box, size: 28), // Slightly larger icon
             label: 'Add',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+            icon: Icon(Icons.person, size: 28), // Slightly larger icon
             label: 'Account',
           ),
         ],
@@ -276,7 +338,8 @@ class _HomeScreenState extends State<HomeScreen> {
         unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
         backgroundColor: Colors.white,
-        elevation: 8,
+        elevation: 8, // More prominent shadow
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold), // Bold selected label
       ),
     );
   }
