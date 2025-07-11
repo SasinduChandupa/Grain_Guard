@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart'; // Import Firebase Realtime Database
-import 'package:fl_chart/fl_chart.dart'; // Import FL Chart
-import 'package:intl/intl.dart'; // Import for date formatting in tooltips
+import 'package:firebase_database/firebase_database.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
-// Data model for the chart
 class WeightData {
   final DateTime time;
   final double weight;
@@ -13,17 +12,20 @@ class WeightData {
 
 class ContainerScreen extends StatefulWidget {
   final String containerName;
+  final String userId;
 
-  const ContainerScreen({super.key, required this.containerName});
+  const ContainerScreen({
+    super.key, 
+    required this.containerName,
+    required this.userId,
+  });
 
   @override
   State<ContainerScreen> createState() => _ContainerScreenState();
 }
 
 class _ContainerScreenState extends State<ContainerScreen> {
-  // Reference to your Firebase Realtime Database instance.
   final DatabaseReference _databaseRef = FirebaseDatabase.instance.ref();
-
   double _currentWeight = 0.0;
   List<WeightData> _weightHistory = [];
   bool _isLoading = true;
@@ -35,9 +37,14 @@ class _ContainerScreenState extends State<ContainerScreen> {
   }
 
   void _listenToWeightData() {
-    // Listen for currentWeight changes.
-    // Based on the screenshot, currentWeight is directly under the root.
-    _databaseRef.child('currentWeight').onValue.listen((event) {
+    // Path to currentWeight: users/{userId}/containers/{containerName}/currentWeight
+    _databaseRef
+        .child('users')
+        .child(widget.userId)
+        .child('containers')
+        .child(widget.containerName)
+        .child('currentWeight')
+        .onValue.listen((event) {
       final data = event.snapshot.value;
       if (data != null) {
         setState(() {
@@ -48,26 +55,31 @@ class _ContainerScreenState extends State<ContainerScreen> {
       print("Failed to load current weight: $error");
     });
 
-    // Listen for weightHistory changes.
-    // Based on the screenshot, weightHistory is directly under the root.
-    _databaseRef.child('weightHistory').onValue.listen((event) {
+    // Path to weightHistory: users/{userId}/containers/{containerName}/weightHistory
+    _databaseRef
+        .child('users')
+        .child(widget.userId)
+        .child('containers')
+        .child(widget.containerName)
+        .child('weightHistory')
+        .onValue.listen((event) {
       final data = event.snapshot.value;
       List<WeightData> loadedHistory = [];
+      
       if (data != null && data is Map) {
         data.forEach((key, value) {
           try {
-            // Timestamp format: YYYY-MM-DD_HH-MM-SS
             List<String> dateTimeParts = key.split('_');
             List<String> dateParts = dateTimeParts[0].split('-');
             List<String> timeParts = dateTimeParts[1].split('-');
 
             DateTime timestamp = DateTime(
-              int.parse(dateParts[0]), // Year
-              int.parse(dateParts[1]), // Month
-              int.parse(dateParts[2]), // Day
-              int.parse(timeParts[0]), // Hour
-              int.parse(timeParts[1]), // Minute
-              int.parse(timeParts[2]), // Second
+              int.parse(dateParts[0]),
+              int.parse(dateParts[1]),
+              int.parse(dateParts[2]),
+              int.parse(timeParts[0]),
+              int.parse(timeParts[1]),
+              int.parse(timeParts[2]),
             );
             loadedHistory.add(WeightData(timestamp, (value as num).toDouble()));
           } catch (e) {
@@ -75,7 +87,6 @@ class _ContainerScreenState extends State<ContainerScreen> {
           }
         });
 
-        // Sort the history by time to ensure the chart draws correctly
         loadedHistory.sort((a, b) => a.time.compareTo(b.time));
       }
 
@@ -93,12 +104,10 @@ class _ContainerScreenState extends State<ContainerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Determine min/max Y values for the bar chart
-    // For bar charts, minY is typically 0.
     double minY = 0;
     double maxY = _weightHistory.isNotEmpty
         ? _weightHistory.map((data) => data.weight).reduce((a, b) => a > b ? a : b) * 1.1
-        : 100; // Add 10% buffer to max or default to 100
+        : 100;
 
     return Scaffold(
       appBar: AppBar(
@@ -136,7 +145,7 @@ class _ContainerScreenState extends State<ContainerScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${_currentWeight.toStringAsFixed(2)}kg', // Display live weight
+                      '${_currentWeight.toStringAsFixed(2)}kg',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -160,9 +169,8 @@ class _ContainerScreenState extends State<ContainerScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    // Live chart integration
                     AspectRatio(
-                      aspectRatio: 1.5, // Adjust as needed
+                      aspectRatio: 1.5,
                       child: _isLoading
                           ? const Center(child: CircularProgressIndicator())
                           : _weightHistory.isEmpty
@@ -172,8 +180,8 @@ class _ContainerScreenState extends State<ContainerScreen> {
                                   child: BarChart(
                                     BarChartData(
                                       alignment: BarChartAlignment.spaceAround,
-                                      maxY: maxY, // Set maximum Y value
-                                      minY: minY, // Set minimum Y value to 0 for bar charts
+                                      maxY: maxY,
+                                      minY: minY,
                                       gridData: const FlGridData(
                                           show: true, drawVerticalLine: false),
                                       borderData: FlBorderData(
@@ -192,7 +200,6 @@ class _ContainerScreenState extends State<ContainerScreen> {
                                             showTitles: true,
                                             reservedSize: 40,
                                             getTitlesWidget: (value, meta) {
-                                              // Use the index for titles, then map back to DateTime
                                               if (value.toInt() < 0 || value.toInt() >= _weightHistory.length) {
                                                 return SideTitleWidget(axisSide: meta.axisSide, child: const Text(''));
                                               }
@@ -225,12 +232,12 @@ class _ContainerScreenState extends State<ContainerScreen> {
                                         int index = entry.key;
                                         WeightData data = entry.value;
                                         return BarChartGroupData(
-                                          x: index, // Use index for X value in BarChart
+                                          x: index,
                                           barRods: [
                                             BarChartRodData(
                                               toY: data.weight,
                                               color: Colors.blue,
-                                              width: 15, // Adjust bar width as needed
+                                              width: 15,
                                               borderRadius: BorderRadius.circular(4),
                                             ),
                                           ],
@@ -258,7 +265,6 @@ class _ContainerScreenState extends State<ContainerScreen> {
           ],
         ),
       ),
-      // Your existing bottom navigation bar
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'container.dart';
+import 'package:firebase_database/firebase_database.dart'; // Import Realtime Database
+import 'container.dart'; // Assuming this file defines ContainerScreen
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -19,31 +19,40 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final TextEditingController _containerIdController = TextEditingController();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final DatabaseReference _database = FirebaseDatabase.instance.ref(); // Initialize Realtime Database reference
 
+  // Modified to fetch containers from Realtime Database
   Future<List<String>> _getUserContainers() async {
-    final doc = await _firestore.collection('users').doc(widget.userId).get();
-    if (doc.exists) {
-      final data = doc.data() as Map<String, dynamic>;
-      return List<String>.from(data['containers'] ?? []);
+    // Reference to the user's containers node
+    final userContainersRef = _database.child('users').child(widget.userId).child('containers');
+
+    final snapshot = await userContainersRef.get(); // Get the data once
+
+    if (snapshot.exists && snapshot.value != null) {
+      // Data will be a Map<String, dynamic> if you're storing as key: true
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      // Return the keys of the map, which are your container IDs
+      return data.keys.toList();
     }
     return [];
   }
 
+  // Modified to save containers to Realtime Database
   Future<void> _saveContainer(String containerId) async {
-    final containers = await _getUserContainers();
-    containers.add(containerId);
+    // Reference to the specific container ID under the user's containers
+    final containerRef = _database.child('users').child(widget.userId).child('containers').child(containerId);
 
-    await _firestore.collection('users').doc(widget.userId).update({
-      'containers': FieldValue.arrayUnion([containerId]),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    // Set the container ID as a key with a 'true' value
+    // This is a common and efficient way to store a set of unique items in Realtime DB
+    await containerRef.set(true);
   }
 
+  // Modified to delete containers from Realtime Database
   Future<void> _deleteContainer(String containerId) async {
-    await _firestore.collection('users').doc(widget.userId).update({
-      'containers': FieldValue.arrayRemove([containerId]),
-    });
+    // Reference to the specific container ID to be removed
+    final containerRef = _database.child('users').child(widget.userId).child('containers').child(containerId);
+
+    await containerRef.remove(); // Remove the node
   }
 
   // New method to show the confirmation dialog before deleting
@@ -182,22 +191,27 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 24),
             Expanded(
-              child: StreamBuilder<DocumentSnapshot>(
-                stream:
-                    _firestore.collection('users').doc(widget.userId).snapshots(),
+              // StreamBuilder now listens to Realtime Database changes
+              child: StreamBuilder<DatabaseEvent>(
+                stream: _database.child('users').child(widget.userId).child('containers').onValue,
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    return const Center(child: Text('Error loading containers'));
+                    return Center(child: Text('Error loading containers: ${snapshot.error}'));
                   }
 
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  final containers = List<String>.from(
-                    (snapshot.data?.data() as Map<String, dynamic>?)?['containers'] ??
-                        [],
-                  );
+                  final dataSnapshot = snapshot.data?.snapshot;
+                  if (dataSnapshot == null || !dataSnapshot.exists || dataSnapshot.value == null) {
+                    return const Center(child: Text('No containers added yet'));
+                  }
+
+                  // Realtime Database data often comes as a Map<dynamic, dynamic>
+                  // Convert it to Map<String, dynamic> and get the keys
+                  final containersMap = Map<String, dynamic>.from(dataSnapshot.value as Map);
+                  final containers = containersMap.keys.toList();
 
                   if (containers.isEmpty) {
                     return const Center(child: Text('No containers added yet'));
@@ -223,21 +237,24 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _confirmAndDeleteContainer(containerId), // Call new confirmation method
+                                onPressed: () => _confirmAndDeleteContainer(containerId),
                               ),
                             ],
                           ),
                           const SizedBox(height: 12),
                           GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      ContainerScreen(containerName: containerId),
-                                ),
-                              );
-                            },
+                            // In home.dart, update the onTap handler in the ListView.builder:
+onTap: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => ContainerScreen(
+        containerName: containerId,
+        userId: widget.userId, // Pass the userId here
+      ),
+    ),
+  );
+},
                             child: Container(
                               height: 140, // Slightly smaller height
                               margin: const EdgeInsets.only(bottom: 16),
