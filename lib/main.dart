@@ -19,50 +19,49 @@ class GrainGuardApp extends StatelessWidget {
       title: 'GrainGuard',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // Define a primary color for consistent branding
-        primarySwatch: Colors.green, // This will generate various shades of green
-        primaryColor: const Color(0xFF4CAF50), // Explicitly define your desired green
-        scaffoldBackgroundColor: const Color(0xFFF5F5F5), // Light grey background
+        primarySwatch: Colors.green, 
+        primaryColor: const Color(0xFF4CAF50), 
+        scaffoldBackgroundColor: const Color(0xFFF5F5F5), 
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF4CAF50), // Green app bar
-          foregroundColor: Colors.white, // White text/icons on app bar
+          backgroundColor: Color(0xFF4CAF50), 
+          foregroundColor: Colors.white, 
           elevation: 4.0,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0), // More rounded corners
-            borderSide: BorderSide.none, // No border by default
+            borderRadius: BorderRadius.circular(12.0), 
+            borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.0),
-            borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 2.0), // Green border when focused
+            borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 2.0), 
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.0),
-            borderSide: BorderSide(color: Colors.grey.shade300, width: 1.0), // Light grey border when enabled
+            borderSide: BorderSide(color: Colors.grey.shade300, width: 1.0), 
           ),
-          labelStyle: const TextStyle(color: Color(0xFF555555)), // Darker grey label
-          hintStyle: const TextStyle(color: Color(0xFF555555)), // Darker grey hint
-          contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0), // More padding
+          labelStyle: const TextStyle(color: Color(0xFF555555)),
+          hintStyle: const TextStyle(color: Color(0xFF555555)), 
+          contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0), 
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF4CAF50), // Green button background
-            foregroundColor: Colors.white, // White text on button
-            padding: const EdgeInsets.symmetric(vertical: 18), // Taller button
+            backgroundColor: const Color(0xFF4CAF50),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 18), 
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12), // Rounded button corners
             ),
-            elevation: 5, // Add shadow to the button
-            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), // Larger, bold text
+            elevation: 5, 
+            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), 
           ),
         ),
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF4CAF50), // Green text button
-            textStyle: const TextStyle(fontWeight: FontWeight.bold), // Bold text button
+            foregroundColor: const Color(0xFF4CAF50),
+            textStyle: const TextStyle(fontWeight: FontWeight.bold), 
           ),
         ),
       ),
@@ -169,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => RegisterScreen(
-          onRegister: () => widget.onLogin(''), // Temporary empty user ID
+          onRegister: () => widget.onLogin(''), 
         ),
       ),
     );
@@ -189,10 +188,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 Text(
                   'GRAINGUARD',
                   style: TextStyle(
-                    fontSize: 32, // Slightly larger
+                    fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor, // Use primary color
-                    fontStyle: FontStyle.normal, // Not cursive
+                    color: Theme.of(context).primaryColor,
+                    fontStyle: FontStyle.normal,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -209,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Text(
                       _errorMessage,
-                      style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold), // Darker red and bold
+                      style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold),
                     ),
                   ),
                 Form(

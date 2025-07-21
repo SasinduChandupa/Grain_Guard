@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart'; // Import Realtime Database
-import 'container.dart'; // Assuming this file defines ContainerScreen
+import 'package:firebase_database/firebase_database.dart'; 
+import 'container.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onLogout;
-  final String userId; // Add userId parameter
+  final String userId; 
 
   const HomeScreen({
     super.key,
     required this.onLogout,
-    required this.userId, // Receive userId
+    required this.userId,
   });
 
   @override
@@ -19,47 +19,44 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final TextEditingController _containerIdController = TextEditingController();
-  final DatabaseReference _database = FirebaseDatabase.instance.ref(); // Initialize Realtime Database reference
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
 
-  // Modified to fetch containers from Realtime Database
   Future<List<String>> _getUserContainers() async {
-    // Reference to the user's containers node
+    
     final userContainersRef = _database.child('users').child(widget.userId).child('containers');
 
-    final snapshot = await userContainersRef.get(); // Get the data once
+    final snapshot = await userContainersRef.get(); 
 
     if (snapshot.exists && snapshot.value != null) {
-      // Data will be a Map<String, dynamic> if you're storing as key: true
+      
       final data = Map<String, dynamic>.from(snapshot.value as Map);
-      // Return the keys of the map, which are your container IDs
+     
       return data.keys.toList();
     }
     return [];
   }
 
-  // Modified to save containers to Realtime Database
+ 
   Future<void> _saveContainer(String containerId) async {
-    // Reference to the specific container ID under the user's containers
+    
     final containerRef = _database.child('users').child(widget.userId).child('containers').child(containerId);
 
-    // Set the container ID as a key with a 'true' value
-    // This is a common and efficient way to store a set of unique items in Realtime DB
     await containerRef.set(true);
   }
 
-  // Modified to delete containers from Realtime Database
+  
   Future<void> _deleteContainer(String containerId) async {
-    // Reference to the specific container ID to be removed
+    
     final containerRef = _database.child('users').child(widget.userId).child('containers').child(containerId);
 
-    await containerRef.remove(); // Remove the node
+    await containerRef.remove(); 
   }
 
-  // New method to show the confirmation dialog before deleting
+
   Future<void> _confirmAndDeleteContainer(String containerId) async {
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // User must tap a button to close
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Confirm Deletion'),
@@ -67,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Dismiss the dialog
+                Navigator.of(context).pop();
               },
               child: const Text('No'),
             ),
@@ -75,12 +72,12 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () async {
                 await _deleteContainer(containerId);
                 if (mounted) {
-                  Navigator.of(context).pop(); // Dismiss the dialog
-                  setState(() {}); // Refresh the UI to reflect the deletion
+                  Navigator.of(context).pop(); 
+                  setState(() {}); 
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, // Red color for delete action
+                backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
               ),
               child: const Text('Yes'),
@@ -161,13 +158,13 @@ class _HomeScreenState extends State<HomeScreen> {
             color: Colors.white,
           ),
         ),
-        backgroundColor: const Color(0xFF4CAF50), // Green app bar
-        elevation: 4.0, // Add a subtle shadow
+        backgroundColor: const Color(0xFF4CAF50),
+        elevation: 4.0, 
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications, color: Colors.white),
             onPressed: () {
-              // Handle notification icon tap
+              
             },
           ),
           IconButton(
@@ -184,14 +181,14 @@ class _HomeScreenState extends State<HomeScreen> {
             const Text(
               'My Containers',
               style: TextStyle(
-                fontSize: 26, // Slightly larger
+                fontSize: 26,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF333333), // Darker grey
+                color: Color(0xFF333333), 
               ),
             ),
             const SizedBox(height: 24),
             Expanded(
-              // StreamBuilder now listens to Realtime Database changes
+           
               child: StreamBuilder<DatabaseEvent>(
                 stream: _database.child('users').child(widget.userId).child('containers').onValue,
                 builder: (context, snapshot) {
@@ -208,8 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     return const Center(child: Text('No containers added yet'));
                   }
 
-                  // Realtime Database data often comes as a Map<dynamic, dynamic>
-                  // Convert it to Map<String, dynamic> and get the keys
+                 
                   final containersMap = Map<String, dynamic>.from(dataSnapshot.value as Map);
                   final containers = containersMap.keys.toList();
 
@@ -243,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 12),
                           GestureDetector(
-                            // In home.dart, update the onTap handler in the ListView.builder:
+                           
 onTap: () {
   Navigator.push(
     context,
@@ -263,7 +259,7 @@ onTap: () {
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.grey.withOpacity(0.3), // More prominent shadow
+                                    color: Colors.grey.withOpacity(0.3), 
                                     spreadRadius: 3,
                                     blurRadius: 7,
                                     offset: const Offset(0, 4),
@@ -275,13 +271,13 @@ onTap: () {
                                   Center(
                                     child: Image.asset(
                                       'assets/images/jarcup.png',
-                                      width: 90, // Slightly larger image
+                                      width: 90, 
                                       height: 90,
-                                      fit: BoxFit.contain, // Ensure image scales correctly
-                                      colorBlendMode: BlendMode.srcATop, // Apply blend mode
-                                      color: const Color(0xFF4CAF50).withOpacity(0.7), // Green tint
+                                      fit: BoxFit.contain, 
+                                      colorBlendMode: BlendMode.srcATop,
+                                      color: const Color(0xFF4CAF50).withOpacity(0.7), 
                                       errorBuilder: (context, error, stackTrace) {
-                                        return const Icon(Icons.image_not_supported, size: 60, color: Colors.grey); // Larger error icon
+                                        return const Icon(Icons.image_not_supported, size: 60, color: Colors.grey); 
                                       },
                                     ),
                                   ),
@@ -298,9 +294,9 @@ onTap: () {
             ),
             Center(
               child: Container(
-                width: double.infinity, // Make the button full width
+                width: double.infinity,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30), // More rounded, pill shape
+                  borderRadius: BorderRadius.circular(30),
                   gradient: LinearGradient(
                     colors: [
                       const Color(0xFF4CAF50).withOpacity(0.9),
@@ -315,18 +311,18 @@ onTap: () {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent, // Transparent to show gradient
                     foregroundColor: Colors.white,
-                    elevation: 0, // No shadow for the button itself
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16), // Increased padding
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   ),
-                  icon: const Icon(Icons.add_circle_outline, size: 28), // Larger icon
+                  icon: const Icon(Icons.add_circle_outline, size: 28),
                   label: const Text(
                     'Add More Containers',
                     style: TextStyle(
-                      fontSize: 18, // Larger text
-                      fontWeight: FontWeight.w600, // Slightly bolder
+                      fontSize: 18, 
+                      fontWeight: FontWeight.w600, 
                     ),
                   ),
                 ),
@@ -338,15 +334,15 @@ onTap: () {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.home, size: 28), // Slightly larger icon
+            icon: Icon(Icons.home, size: 28), 
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.add_box, size: 28), // Slightly larger icon
+            icon: Icon(Icons.add_box, size: 28),
             label: 'Add',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person, size: 28), // Slightly larger icon
+            icon: Icon(Icons.person, size: 28), 
             label: 'Account',
           ),
         ],
@@ -355,8 +351,8 @@ onTap: () {
         unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
         backgroundColor: Colors.white,
-        elevation: 8, // More prominent shadow
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold), // Bold selected label
+        elevation: 8,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold), 
       ),
     );
   }
