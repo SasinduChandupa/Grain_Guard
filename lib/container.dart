@@ -145,7 +145,7 @@ class _ContainerScreenState extends State<ContainerScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${_currentWeight.toStringAsFixed(2)}kg',
+                      '${_currentWeight.toStringAsFixed(2)}G',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
